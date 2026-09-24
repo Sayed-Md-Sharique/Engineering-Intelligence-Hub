@@ -4,7 +4,7 @@ python-multipart
 python-dotenv
 pypdf
 qdrant-client
-sentence-transformers
+huggingface-hub
 langchain-text-splitters
 langchain-core
 langchain-groq

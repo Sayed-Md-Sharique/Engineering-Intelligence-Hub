@@ -1,10 +1,11 @@
-from sentence_transformers import SentenceTransformer
+import uuid
+
+from huggingface_hub import InferenceClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, VectorParams, Distance
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-import uuid
 
 from config import (
     QDRANT_URL,
@@ -12,18 +13,17 @@ from config import (
     COLLECTION_NAME,
     EMBEDDING_MODEL,
     GROQ_API_KEY,
-    GROQ_MODEL
+    GROQ_MODEL,
+    HF_TOKEN
 )
 
-embedding_model = None
 
-def get_embedding_model():
-    global embedding_model
+# -------------------- Clients --------------------
 
-    if embedding_model is None:
-        embedding_model = SentenceTransformer(EMBEDDING_MODEL)
-
-    return embedding_model
+hf_client = InferenceClient(
+    provider="hf-inference",
+    api_key=HF_TOKEN
+)
 
 qdrant = QdrantClient(
     url=QDRANT_URL,
@@ -32,11 +32,32 @@ qdrant = QdrantClient(
     check_compatibility=False
 )
 
+
+# -------------------- Embeddings --------------------
+
+def create_embeddings(texts):
+
+    result = hf_client.feature_extraction(
+        texts,
+        model=EMBEDDING_MODEL
+    )
+
+    return result.tolist()
+
+
+# -------------------- Qdrant --------------------
+
 def create_collection():
+
     collections = qdrant.get_collections().collections
-    names = [collection.name for collection in collections]
+
+    names = [
+        collection.name
+        for collection in collections
+    ]
 
     if COLLECTION_NAME not in names:
+
         qdrant.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=VectorParams(
@@ -45,24 +66,34 @@ def create_collection():
             )
         )
 
+
+# -------------------- Chunking --------------------
+
 def split_document(text):
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=800,
         chunk_overlap=100
     )
+
     return splitter.split_text(text)
 
+
+# -------------------- Add Document --------------------
+
 def add_document(text, source):
+
     create_collection()
 
     chunks = split_document(text)
-    model = get_embedding_model()
-    vectors = model.encode(chunks).tolist()
+
+    vectors = create_embeddings(chunks)
 
     points = []
 
     for chunk, vector in zip(chunks, vectors):
-            point = PointStruct(
+
+        point = PointStruct(
             id=str(uuid.uuid4()),
             vector=vector,
             payload={
@@ -70,7 +101,8 @@ def add_document(text, source):
                 "source": source
             }
         )
-    points.append(point)
+
+        points.append(point)
 
     qdrant.upsert(
         collection_name=COLLECTION_NAME,
@@ -79,9 +111,14 @@ def add_document(text, source):
 
     return len(chunks)
 
+
+# -------------------- Search --------------------
+
 def search_documents(question, top_k=5):
-    model = get_embedding_model()
-    question_vector = model.encode(question).tolist()
+
+    question_vector = create_embeddings(
+        [question]
+    )[0]
 
     results = qdrant.query_points(
         collection_name=COLLECTION_NAME,
@@ -91,9 +128,16 @@ def search_documents(question, top_k=5):
 
     return results
 
+
+# -------------------- Generate Answer --------------------
+
 def generate_answer(question, results):
+
     if not results:
-        return "I could not find relevant information.", []
+        return (
+            "I could not find relevant information.",
+            []
+        )
 
     context = "\n\n".join(
         result.payload["text"]
@@ -107,6 +151,7 @@ Answer the question using ONLY the context below.
 Do not invent information.
 
 If the answer is not present in the context, say:
+
 "I could not find this information in the uploaded documents."
 
 Context:
@@ -131,9 +176,11 @@ Answer:
         "question": question
     })
 
-    sources = list(set(
-        result.payload["source"]
-        for result in results
-    ))
+    sources = list(
+        set(
+            result.payload["source"]
+            for result in results
+        )
+    )
 
     return response.content, sources
