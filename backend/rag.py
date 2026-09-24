@@ -2,7 +2,14 @@ import uuid
 
 from huggingface_hub import InferenceClient
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, VectorParams, Distance
+from qdrant_client.models import (
+    PointStruct,
+    VectorParams,
+    Distance,
+    Filter,
+    FieldCondition,
+    MatchValue
+)
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
@@ -120,17 +127,15 @@ def search_documents(question, sources=None, top_k=5):
     query_filter = None
 
     if sources:
-        query_filter = {
-            "should": [
-                {
-                    "key": "source",
-                    "match": {
-                        "value": source
-                    }
-                }
+        query_filter = Filter(
+            should=[
+                FieldCondition(
+                    key="source",
+                    match=MatchValue(value=source)
+                )
                 for source in sources
             ]
-        }
+        )
 
     results = qdrant.query_points(
         collection_name=COLLECTION_NAME,

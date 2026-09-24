@@ -57,13 +57,3 @@ def query(
         "answer": answer,
         "sources": result_sources
     }
-
-    answer, sources = generate_answer(
-        question,
-        results
-    )
-
-    return {
-        "answer": answer,
-        "sources": sources
-    }
