@@ -15,7 +15,15 @@ from config import (
     GROQ_MODEL
 )
 
-embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+embedding_model = None
+
+def get_embedding_model():
+    global embedding_model
+
+    if embedding_model is None:
+        embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+
+    return embedding_model
 
 qdrant = QdrantClient(
     url=QDRANT_URL,
@@ -48,7 +56,8 @@ def add_document(text, source):
     create_collection()
 
     chunks = split_document(text)
-    vectors = embedding_model.encode(chunks).tolist()
+    model = get_embedding_model()
+    vectors = model.encode(chunks).tolist()
 
     points = []
 
@@ -71,7 +80,8 @@ def add_document(text, source):
     return len(chunks)
 
 def search_documents(question, top_k=5):
-    question_vector = embedding_model.encode(question).tolist()
+    model = get_embedding_model()
+    question_vector = model.encode(question).tolist()
 
     results = qdrant.query_points(
         collection_name=COLLECTION_NAME,

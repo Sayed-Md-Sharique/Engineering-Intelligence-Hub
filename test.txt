@@ -1,5 +1,0 @@
-FastAPI is a Python framework for building APIs.
-
-Qdrant is a vector database used for storing and searching embeddings.
-
-RAG stands for Retrieval Augmented Generation.
