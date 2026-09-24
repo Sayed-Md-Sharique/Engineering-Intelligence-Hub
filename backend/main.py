@@ -39,8 +39,24 @@ async def ingest(file: UploadFile = File(...)):
     }
 
 @app.post("/query")
-def query(question: str):
-    results = search_documents(question)
+def query(
+    question: str,
+    sources: list[str] | None = None
+):
+    results = search_documents(
+        question,
+        sources=sources
+    )
+
+    answer, result_sources = generate_answer(
+        question,
+        results
+    )
+
+    return {
+        "answer": answer,
+        "sources": result_sources
+    }
 
     answer, sources = generate_answer(
         question,

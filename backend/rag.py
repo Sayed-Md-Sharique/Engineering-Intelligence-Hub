@@ -114,15 +114,28 @@ def add_document(text, source):
 
 # -------------------- Search --------------------
 
-def search_documents(question, top_k=5):
+def search_documents(question, sources=None, top_k=5):
+    question_vector = create_embeddings([question])[0]
 
-    question_vector = create_embeddings(
-        [question]
-    )[0]
+    query_filter = None
+
+    if sources:
+        query_filter = {
+            "should": [
+                {
+                    "key": "source",
+                    "match": {
+                        "value": source
+                    }
+                }
+                for source in sources
+            ]
+        }
 
     results = qdrant.query_points(
         collection_name=COLLECTION_NAME,
         query=question_vector,
+        query_filter=query_filter,
         limit=top_k
     ).points
 

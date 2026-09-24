@@ -18,18 +18,28 @@ api_url = st.sidebar.text_input(
     "https://engineering-intelligence-hub.onrender.com"
 )
 
+# Store uploaded document names
+if "documents" not in st.session_state:
+    st.session_state.documents = []
+
+
+# ---------------- Upload ----------------
+
 uploaded_files = st.file_uploader(
     "Upload documents or source-code files",
     type=[
         "pdf", "txt", "md", "py", "js", "ts",
-        "java", "cpp", "c", "h", "json", "yaml", "yml"
+        "java", "cpp", "c", "h", "json",
+        "yaml", "yml"
     ],
     accept_multiple_files=True
 )
 
 if st.button("Upload Documents"):
+
     if not uploaded_files:
-        st.warning("Please select at least one document.")
+        st.warning("Please select at least one file.")
+
     else:
         for uploaded_file in uploaded_files:
 
@@ -40,25 +50,63 @@ if st.button("Upload Documents"):
                 )
             }
 
-            response = requests.post(
-                f"{api_url}/ingest",
-                files=files
-            )
-
-            if response.ok:
-                data = response.json()
-
-                st.success(
-                    f"{data['file']} uploaded successfully. "
-                    f"Created {data['chunks']} chunks."
+            try:
+                response = requests.post(
+                    f"{api_url}/ingest",
+                    files=files,
+                    timeout=120
                 )
-            else:
+
+                if response.ok:
+
+                    data = response.json()
+
+                    if uploaded_file.name not in st.session_state.documents:
+                        st.session_state.documents.append(
+                            uploaded_file.name
+                        )
+
+                    st.success(
+                        f"{data['file']} uploaded successfully. "
+                        f"Created {data['chunks']} chunks."
+                    )
+
+                else:
+                    st.error(
+                        f"Upload failed for "
+                        f"{uploaded_file.name}: "
+                        f"{response.text}"
+                    )
+
+            except Exception as e:
                 st.error(
-                    f"Failed to upload {uploaded_file.name}: "
-                    f"{response.text}"
+                    f"Error uploading {uploaded_file.name}: {e}"
                 )
+
+
+# ---------------- Select documents ----------------
 
 st.divider()
+
+if st.session_state.documents:
+
+    selected_documents = st.multiselect(
+        "Select document(s) to search",
+        options=st.session_state.documents,
+        default=st.session_state.documents[-1:]
+    )
+
+else:
+
+    selected_documents = []
+
+    st.info(
+        "Upload a document first, then select the document "
+        "you want to ask questions about."
+    )
+
+
+# ---------------- Ask question ----------------
 
 question = st.text_area(
     "Ask a question",
@@ -66,23 +114,46 @@ question = st.text_area(
 )
 
 if st.button("Ask Question"):
+
     if not question:
         st.warning("Please enter a question.")
-    else:
-        response = requests.post(
-            f"{api_url}/query",
-            params={"question": question}
+
+    elif not selected_documents:
+        st.warning(
+            "Please select at least one document."
         )
 
-        if response.ok:
-            data = response.json()
+    else:
 
-            st.subheader("Answer")
-            st.write(data["answer"])
+        try:
 
-            st.subheader("Sources")
+            response = requests.post(
+                f"{api_url}/query",
+                params=[
+                    ("question", question)
+                ] + [
+                    ("sources", source)
+                    for source in selected_documents
+                ],
+                timeout=120
+            )
 
-            for source in data["sources"]:
-                st.write(f"• {source}")
-        else:
-            st.error(response.text)
+            if response.ok:
+
+                data = response.json()
+
+                st.subheader("Answer")
+                st.write(data["answer"])
+
+                st.subheader("Sources")
+
+                for source in data["sources"]:
+                    st.write(f"• {source}")
+
+            else:
+                st.error(response.text)
+
+        except Exception as e:
+            st.error(
+                f"Error connecting to backend: {e}"
+            )
