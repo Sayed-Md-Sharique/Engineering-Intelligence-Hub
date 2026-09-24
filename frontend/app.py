@@ -15,7 +15,7 @@ st.write(
 
 api_url = st.sidebar.text_input(
     "Backend URL",
-    "http://127.0.0.1:8000"
+    "https://engineering-intelligence-hub.onrender.com"
 )
 
 uploaded_files = st.file_uploader(
