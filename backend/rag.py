@@ -121,27 +121,39 @@ def add_document(text, source):
 
 # -------------------- Search --------------------
 
-def search_documents(question, sources=None, top_k=5):
+def search_documents(question, sources=None, top_k_per_source=3):
     question_vector = create_embeddings([question])[0]
 
-    query_filter = None
-
+    # If specific documents are selected
     if sources:
-        query_filter = Filter(
-            should=[
-                FieldCondition(
-                    key="source",
-                    match=MatchValue(value=source)
-                )
-                for source in sources
-            ]
-        )
+        all_results = []
 
+        for source in sources:
+            query_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="source",
+                        match=MatchValue(value=source)
+                    )
+                ]
+            )
+
+            results = qdrant.query_points(
+                collection_name=COLLECTION_NAME,
+                query=question_vector,
+                query_filter=query_filter,
+                limit=top_k_per_source
+            ).points
+
+            all_results.extend(results)
+
+        return all_results
+
+    # If no document filter is provided, search all documents
     results = qdrant.query_points(
         collection_name=COLLECTION_NAME,
         query=question_vector,
-        query_filter=query_filter,
-        limit=top_k
+        limit=5
     ).points
 
     return results
