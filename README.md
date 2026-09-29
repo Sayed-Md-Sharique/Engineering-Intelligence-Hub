@@ -1,83 +1,132 @@
 # Engineering Intelligence Hub
 
-A simple and easy-to-understand RAG project for engineering knowledge.
+Engineering Intelligence Hub is a RAG-based application that helps developers find information from technical documents and source code.
 
-## What can it read?
+Users can upload documents, select the files they want to search, and ask questions in natural language. The application retrieves relevant content from the selected documents and uses an LLM to generate the answer.
 
-- PDF
-- TXT
-- Markdown
-- Python
-- JavaScript
-- TypeScript
-- Java
-- C / C++
-- JSON
-- YAML
+## Features
 
-## Technology
+* Upload multiple documents and source-code files
+* Ask questions using natural language
+* Search documents using semantic similarity
+* Select one or multiple documents for a query
+* Get answers based on the uploaded content
+* View the source documents used for retrieval
+* Support for PDF, TXT, Markdown and common code files
 
-- Python
-- FastAPI
-- LangChain
-- HuggingFace Embeddings
-- Qdrant
-- Groq
-- Streamlit
+## Tech Stack
 
-## How the project works
+* Python
+* FastAPI
+* LangChain
+* Qdrant
+* Hugging Face
+* Groq
+* Streamlit
 
-Document
--> Text extraction
--> Chunking
--> Embeddings
--> Qdrant
--> Similarity search
--> Groq LLM
--> Answer + Sources
+## How It Works
 
-## Setup
+```text
+Upload Document
+      ↓
+Extract Text
+      ↓
+Split into Chunks
+      ↓
+Create Embeddings
+      ↓
+Store in Qdrant
+      ↓
+Ask Question
+      ↓
+Find Relevant Chunks
+      ↓
+Groq LLM
+      ↓
+Answer
+```
 
-### 1. Create environment
+## Project Structure
 
-Windows:
+```text
+Engineering-Intelligence-Hub/
+│
+├── backend/
+│   ├── config.py
+│   ├── document_loader.py
+│   ├── rag.py
+│   ├── main.py
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── app.py
+│   └── requirements.txt
+│
+├── .env.example
+├── .gitignore
+└── README.md
+```
 
+## Run Locally
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Sayed-Md-Sharique/Engineering-Intelligence-Hub.git
+cd Engineering-Intelligence-Hub
+```
+
+Create and activate a virtual environment:
+
+```bash
 python -m venv .venv
-.venv\\Scripts\\activate
+.venv\Scripts\activate
+```
 
-### 2. Install backend
+Install the dependencies:
 
+```bash
+pip install -r backend/requirements.txt
+pip install -r frontend/requirements.txt
+```
+
+Create a `.env` file and add:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+QDRANT_URL=your_qdrant_url
+QDRANT_API_KEY=your_qdrant_api_key
+HF_TOKEN=your_huggingface_token
+```
+
+Start the backend:
+
+```bash
 cd backend
-pip install -r requirements.txt
-
-### 3. Configure API keys
-
-Copy `.env.example` to `.env`.
-
-Add:
-
-GROQ_API_KEY=your_key
-QDRANT_URL=your_url
-QDRANT_API_KEY=your_key
-
-### 4. Run FastAPI
-
-From the backend folder:
-
 uvicorn main:app --reload
+```
 
-Open:
+Start the frontend in another terminal:
 
-http://127.0.0.1:8000/docs
-
-### 5. Run Streamlit
-
-Open another terminal:
-
+```bash
 cd frontend
-pip install -r requirements.txt
 streamlit run app.py
+```
 
-## Interview explanation
+## Live Demo
 
-"I built a multi-source RAG application for engineering knowledge. It reads documents and source code, splits the content into smaller chunks, converts the chunks into embeddings and stores them in Qdrant. When a user asks a question, the system retrieves the most relevant chunks and sends them as context to a Groq-hosted LLM. FastAPI provides the backend APIs and Streamlit provides the user interface."
+**Frontend:**
+https://engineering-intelligence.streamlit.app/
+
+**Backend:**
+https://engineering-intelligence-hub.onrender.com/
+
+## Use Cases
+
+* Technical document search
+* Developer onboarding
+* Source-code Q&A
+* Multi-document question answering
+* Engineering knowledge retrieval
+
+Aspiring AI/ML Engineer
